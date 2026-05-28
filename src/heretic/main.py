@@ -121,7 +121,7 @@ def obtain_merge_strategy(settings: Settings, model: Model) -> str | None:
                 print(
                     f"[yellow]Estimated RAM required (excluding overhead): [bold]~{footprint_gb:.2f} GB[/][/]"
                 )
-        except Exception:
+        except OSError:
             # Fallback if meta loading fails (e.g. owing to custom model code
             # or bitsandbytes quantization config issues on the meta device).
             print(
@@ -1113,7 +1113,7 @@ def run():
                             if table.rows:
                                 print(table)
 
-                except Exception as error:
+                except (ValueError, RuntimeError) as error:
                     print(f"[red]Error: {error}[/]")
 
 
