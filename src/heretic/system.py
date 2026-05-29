@@ -96,7 +96,7 @@ def get_amdgpu_driver_version() -> str | None:
             if os.path.exists(version_path):
                 with open(version_path, "r", encoding="utf-8") as f:
                     return f.read().strip()
-    except Exception:
+    except OSError:
         pass
 
     return None
@@ -172,7 +172,7 @@ def get_heretic_version_info() -> HereticVersionInfo:
 
     try:
         direct_url_content = distribution.read_text("direct_url.json")
-    except Exception:
+    except OSError:
         direct_url_content = None
 
     if not direct_url_content:
