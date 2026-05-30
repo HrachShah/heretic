@@ -96,7 +96,7 @@ def get_amdgpu_driver_version() -> str | None:
             if os.path.exists(version_path):
                 with open(version_path, "r", encoding="utf-8") as f:
                     return f.read().strip()
-    except Exception:
+    except OSError:
         pass
 
     return None
