@@ -121,7 +121,7 @@ def obtain_merge_strategy(settings: Settings, model: Model) -> str | None:
                 print(
                     f"[yellow]Estimated RAM required (excluding overhead): [bold]~{footprint_gb:.2f} GB[/][/]"
                 )
-        except Exception:
+        except (ValueError, TypeError, AttributeError, OSError):
             # Fallback if meta loading fails (e.g. owing to custom model code
             # or bitsandbytes quantization config issues on the meta device).
             print(
@@ -356,7 +356,7 @@ def run():
                 start_time = time.perf_counter()
                 responses = model.get_responses(prompts)
                 end_time = time.perf_counter()
-            except Exception as error:
+            except (ValueError, TypeError, RuntimeError, OSError) as error:
                 if batch_size == 1:
                     # Even a batch size of 1 already fails.
                     # We cannot recover from this.
@@ -1113,7 +1113,7 @@ def run():
                             if table.rows:
                                 print(table)
 
-                except Exception as error:
+                except (ValueError, TypeError, RuntimeError, OSError) as error:
                     print(f"[red]Error: {error}[/]")
 
 
