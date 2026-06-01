@@ -172,7 +172,7 @@ def get_heretic_version_info() -> HereticVersionInfo:
 
     try:
         direct_url_content = distribution.read_text("direct_url.json")
-    except Exception:
+    except (importlib.metadata.PackageNotFoundError, OSError):
         direct_url_content = None
 
     if not direct_url_content:
