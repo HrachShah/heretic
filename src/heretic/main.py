@@ -356,7 +356,7 @@ def run():
                 start_time = time.perf_counter()
                 responses = model.get_responses(prompts)
                 end_time = time.perf_counter()
-            except Exception as error:
+            except (ValueError, TypeError) as error:
                 if batch_size == 1:
                     # Even a batch size of 1 already fails.
                     # We cannot recover from this.
