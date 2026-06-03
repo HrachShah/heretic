@@ -96,7 +96,8 @@ def get_amdgpu_driver_version() -> str | None:
             if os.path.exists(version_path):
                 with open(version_path, "r", encoding="utf-8") as f:
                     return f.read().strip()
-    except Exception:
+    except OSError:
+        # Read failure from a kernel module file — not critical, just means we can't detect the driver version.
         pass
 
     return None
