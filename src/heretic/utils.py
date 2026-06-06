@@ -178,7 +178,18 @@ def is_hf_path(path: str) -> bool:
     if Path(path).exists():
         return False
 
-    validate_repo_id(path)
+    # validate_repo_id raises HFValidationError (a ValueError subclass) for
+    # strings that are not shaped like a Hub repository ID (for example paths
+    # containing spaces, leading dots, or "--"/".." sequences). is_hf_path is
+    # used as a boolean predicate by callers (load_prompts, the model
+    # evaluation block, the HF upload block) so a ValueError here would crash
+    # those call sites instead of letting them fall through to local-path
+    # handling.
+    try:
+        validate_repo_id(path)
+    except ValueError:
+        return False
+
     return True
 
 
