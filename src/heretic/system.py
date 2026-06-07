@@ -186,7 +186,18 @@ def get_heretic_version_info() -> HereticVersionInfo:
             metadata=origin_metadata,
         )
 
-    data = json.loads(direct_url_content)
+    try:
+        data = json.loads(direct_url_content)
+    except (json.JSONDecodeError, TypeError):
+        # Standard PyPI installation.
+        origin_metadata["type"] = "pypi"
+
+        return HereticVersionInfo(
+            version=base_version,
+            origin="PyPI",
+            is_standard_pypi=True,
+            metadata=origin_metadata,
+        )
 
     # Check for Git source.
     if "vcs_info" in data and data["vcs_info"].get("vcs") == "git":
