@@ -96,7 +96,10 @@ def get_amdgpu_driver_version() -> str | None:
             if os.path.exists(version_path):
                 with open(version_path, "r", encoding="utf-8") as f:
                     return f.read().strip()
-    except Exception:
+    except OSError:
+        # /sys/module/amdgpu/version may be unreadable due to kernel
+        # permissions (rare, but happens on hardened systems) or kernel
+        # interface changes. Falling through to the next probe is correct.
         pass
 
     return None
