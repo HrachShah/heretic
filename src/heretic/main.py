@@ -121,9 +121,20 @@ def obtain_merge_strategy(settings: Settings, model: Model) -> str | None:
                 print(
                     f"[yellow]Estimated RAM required (excluding overhead): [bold]~{footprint_gb:.2f} GB[/][/]"
                 )
-        except Exception:
-            # Fallback if meta loading fails (e.g. owing to custom model code
-            # or bitsandbytes quantization config issues on the meta device).
+        except (OSError, ValueError, ImportError, RuntimeError) as error:
+            # Fallback if meta loading fails. The relevant real failure modes are:
+            #   OSError — missing/empty model directory or broken file on disk;
+            #   ValueError — unsupported / invalid model configuration;
+            #   ImportError — missing optional dependency (e.g. custom model code that
+            #                 requires a Python package that isn't installed);
+            #   RuntimeError — bitsandbytes meta-device incompatibility, dtype mismatch,
+            #                  or other PyTorch-level load failures.
+            # Catching all Exception would also swallow KeyboardInterrupt/SystemExit-like
+            # bugs and unrelated AttributeError/TypeError mistakes in this function.
+            print(
+                f"[yellow]Could not estimate memory footprint ({type(error).__name__}: {error}). "
+                "Falling back to rule-of-thumb estimate.[/]"
+            )
             print(
                 "[yellow]Rule of thumb: You need approximately 3x the parameter count in GB RAM.[/]"
             )
@@ -356,13 +367,21 @@ def run():
                 start_time = time.perf_counter()
                 responses = model.get_responses(prompts)
                 end_time = time.perf_counter()
-            except Exception as error:
+            except (RuntimeError, ValueError, OSError) as error:
+                # The batch-size probe only invokes model.get_responses, which calls
+                # model.generate. The failure modes we actually need to recover from here
+                # are:
+                #   RuntimeError — CUDA/HIP/XPU/MPS OOM, dtype mismatch, KV-cache error;
+                #   ValueError — invalid sampling arguments, tokenizer pad-token edge cases;
+                #   OSError — disk I/O when loading a model checkpoint on the fly.
+                # Any other exception (KeyboardInterrupt, SystemExit, bugs in our own code)
+                # should propagate, not be silently dropped into the "[red]Failed[/]" path.
                 if batch_size == 1:
                     # Even a batch size of 1 already fails.
                     # We cannot recover from this.
                     raise
 
-                print(f"[red]Failed[/] ({error})")
+                print(f"[red]Failed[/] ({type(error).__name__}: {error})")
                 break
 
             response_lengths = [
