@@ -178,7 +178,13 @@ def is_hf_path(path: str) -> bool:
     if Path(path).exists():
         return False
 
-    validate_repo_id(path)
+    try:
+        validate_repo_id(path)
+    except ValueError:
+        # HFValidationError is a subclass of ValueError; an invalid id (spaces,
+        # leading/trailing dots, '--', max length > 96, etc.) is not a
+        # repository, so the caller should fall through to local-path handling.
+        return False
     return True
 
 
