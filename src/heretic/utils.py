@@ -178,7 +178,21 @@ def is_hf_path(path: str) -> bool:
     if Path(path).exists():
         return False
 
-    validate_repo_id(path)
+    # validate_repo_id raises huggingface_hub.errors.HFValidationError (a
+    # ValueError subclass) on a string that is not a legal repository id
+    # (empty, contains whitespace, has invalid characters like '@', or is
+    # malformed like 'org//repo' or 'org/repo/extra'). For these inputs there
+    # is no valid Hub repository to look up, so the path cannot be a Hub id
+    # and the caller should fall back to the local-path code path. Without
+    # this try/except a single typo in a dataset id in config.toml crashes
+    # the whole upload flow (and earlier in load_prompts, the first call to
+    # is_hf_path(settings.model) on startup, aborting the run before the
+    # Optuna study even loads its checkpoints).
+    try:
+        validate_repo_id(path)
+    except ValueError:
+        return False
+
     return True
 
 
