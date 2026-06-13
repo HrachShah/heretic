@@ -614,17 +614,37 @@ def create_reproduce_folder(
 
     checkpoint_filename = Path(checkpoint_path).name
 
-    # Fetch commit hash for the base model.
-    settings.model_commit = huggingface_hub.model_info(settings.model).sha
+    # Fetch commit hash for the base model. huggingface_hub.model_info
+    # raises huggingface_hub.errors.RepositoryNotFoundError (a
+    # HfHubHTTPError subclass) when the model id is wrong, GatedRepoError
+    # when the caller hasn't accepted the model's terms, and a generic
+    # requests.RequestException / huggingface_hub.errors.HfHubHTTPError
+    # on network 5xx; rather than letting those bubble up out of the
+    # reproduction-folder step and crash the run right after a successful
+    # ablation, we surface them as a printed warning and leave the commit
+    # unset (the rest of the reproduce folder is still useful for offline
+    # verification).
+    try:
+        settings.model_commit = huggingface_hub.model_info(settings.model).sha
+    except (OSError, ValueError, RuntimeError) as error:
+        print(f"[yellow]Could not fetch commit hash for base model: {error}[/]")
+        settings.model_commit = None
 
     # Fetch commit hashes for all HF datasets to ensure reproducibility.
+    # dataset_info raises the same exception family as model_info, plus
+    # KeyError for malformed dataset ids; we tolerate each so a single
+    # bad dataset id doesn't block the whole reproduce folder write.
     for spec in [
         settings.good_prompts,
         settings.bad_prompts,
         settings.good_evaluation_prompts,
         settings.bad_evaluation_prompts,
     ]:
-        spec.commit = huggingface_hub.dataset_info(spec.dataset).sha
+        try:
+            spec.commit = huggingface_hub.dataset_info(spec.dataset).sha
+        except (OSError, KeyError, ValueError, RuntimeError) as error:
+            print(f"[yellow]Could not fetch commit hash for dataset {spec.dataset}: {error}[/]")
+            spec.commit = None
 
     # Strip microseconds and timezone for a clean format.
     timestamp = (
