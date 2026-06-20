@@ -796,6 +796,13 @@ class Model:
             **inputs,
             streamer=streamer,
             max_new_tokens=4096,
+            # Match the deterministic decoding policy used by Model.generate() so that
+            # an interactive chat session picks the highest-probability continuation on
+            # each call instead of sampling stochastically — the original (and default)
+            # do_sample=True meant every chat reply varied between runs even for the
+            # exact same conversation, which made it impossible to reproduce a useful
+            # response without setting temperature=0.0 by hand.
+            do_sample=False,
         )  # ty:ignore[call-non-callable]
 
         # This cast is valid because str is the return type
